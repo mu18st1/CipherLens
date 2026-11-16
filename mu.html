@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CipherLens</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --black:#000;--ink:#0a0000;--panel:#140304;--red:#ff1e2d;--red-d:#8f0711;--red-s:#ffb3b8;--line:#4a0a10;
+  --display:'Orbitron','Segoe UI',Arial,sans-serif;--mono:'Share Tech Mono','Courier New',monospace;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--black);color:var(--red-s);font-family:var(--mono);overflow-x:hidden;position:relative}
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;display:flex;flex-direction:column;justify-content:space-around;
+  background:radial-gradient(ellipse at 50% 30%,#2a0307 0%,#000 70%)}
+.bg .row{white-space:nowrap;font-family:var(--display);font-weight:800;font-size:clamp(34px,7vw,84px);letter-spacing:.12em;
+  color:transparent;-webkit-text-stroke:1px rgba(255,30,45,.22);animation:slide 60s linear infinite}
+.bg .row:nth-child(even){animation-direction:reverse;-webkit-text-stroke-color:rgba(255,30,45,.12)}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+main{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:40px 20px 56px}
+header{text-align:center;margin-bottom:34px}
+h1{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(38px,9vw,76px);letter-spacing:.14em;color:var(--red);
+  text-shadow:0 0 24px rgba(255,30,45,.55)}
+.coded{margin:10px 0 0;font-size:clamp(18px,4vw,28px);letter-spacing:.5em;color:var(--red-s);opacity:.85}
+.coded small{display:block;margin-top:6px;font-size:13px;letter-spacing:.08em;color:#a8545b}
+.card{background:rgba(20,3,4,.88);border:1px solid var(--line);border-radius:14px;padding:22px;backdrop-filter:blur(4px);
+  box-shadow:0 0 40px rgba(255,30,45,.1)}
+label{display:block;margin:0 0 8px;font-size:15px;color:#d97b83}
+input,select{width:100%;padding:13px 14px;background:#000;color:var(--red-s);border:1px solid var(--red-d);border-radius:8px;
+  font:inherit;font-size:18px;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus,button:focus-visible{border-color:var(--red);box-shadow:0 0 0 3px rgba(255,30,45,.35)}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--red) 50%),linear-gradient(135deg,var(--red) 50%,transparent 50%);
+  background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:38px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.full{grid-column:1/-1}
+.seg{display:flex;border:1px solid var(--red-d);border-radius:8px;overflow:hidden}
+.seg button{flex:1;padding:12px;border:0;background:#000;color:#d97b83;font:inherit;font-size:16px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--red);color:#000;font-weight:bold}
+.go{width:100%;margin-top:20px;padding:15px;border:0;border-radius:8px;background:var(--red);color:#000;font-family:var(--display);
+  font-weight:800;font-size:18px;letter-spacing:.2em;cursor:pointer;transition:transform .15s,box-shadow .2s}
+.go:hover{box-shadow:0 0 28px rgba(255,30,45,.7)}.go:active{transform:scale(.98)}.go:disabled{opacity:.5;cursor:wait}
+.err{min-height:22px;margin:12px 0 0;color:#ff6a75;font-size:15px}
+.hint{margin:8px 0 0;font-size:13px;color:#a8545b}
+.stage{margin-top:26px}
+.status{text-align:center;min-height:24px;color:#d97b83;margin-bottom:14px}
+.cells{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.cell{width:62px;padding:8px 0 6px;text-align:center;border:1px solid var(--line);border-radius:10px;background:#000;transition:border-color .2s,box-shadow .2s}
+.cell .g{display:block;font-family:var(--display);font-weight:800;font-size:32px;line-height:44px;color:#7a2a30}
+.cell .t{display:block;font-size:11px;color:#a8545b;height:14px}
+.cell .b{display:block;height:3px;margin:5px 8px 0;background:#2a0509;border-radius:2px;overflow:hidden}
+.cell .b i{display:block;height:100%;width:0;background:var(--red)}
+.cell.on{border-color:var(--red);box-shadow:0 0 22px rgba(255,30,45,.6)}.cell.on .g{color:var(--red-s)}
+.cell.done .g{color:var(--red);text-shadow:0 0 14px rgba(255,30,45,.8)}.cell.done .b i{width:100%}
+.cell.raw .g{color:#7a2a30}
+.result{margin-top:24px;text-align:center;opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s}
+.result.show{opacity:1;transform:none}
+.result .k{font-size:14px;color:#a8545b}
+.result .v{margin:6px 0 12px;font-family:var(--display);font-weight:800;font-size:clamp(26px,6vw,48px);letter-spacing:.14em;color:var(--red);
+  text-shadow:0 0 20px rgba(255,30,45,.6);overflow-wrap:anywhere}
+.copy{padding:9px 18px;background:transparent;color:var(--red-s);border:1px solid var(--red-d);border-radius:8px;font:inherit;cursor:pointer}
+.copy:hover{border-color:var(--red)}
+.strip{display:grid;grid-template-columns:repeat(13,1fr);gap:4px;margin:0 0 14px}
+.sc{border:1px solid var(--line);border-radius:6px;background:#000;text-align:center;padding:3px 0;transition:background .12s,border-color .12s}
+.sc b{display:block;font-family:var(--display);font-size:14px;color:#7a2a30}
+.sc i{display:block;font-style:normal;font-size:10px;color:#5d2227}
+.sc.tr{background:#3a0509;border-color:var(--red-d)}.sc.tr b{color:var(--red-s)}
+.sc.tg{border-style:dashed;border-color:var(--red)}
+.sc.st{box-shadow:inset 0 0 0 1px var(--red-s)}
+.sc.cur{background:var(--red);border-color:var(--red-s);box-shadow:0 0 16px var(--red)}.sc.cur b,.sc.cur i{color:#000}
+.fx{min-height:58px;margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.6);text-align:center;font-size:15px;line-height:1.8;color:#d97b83}
+.fx em{font-style:normal;color:var(--red-s)}.fx strong{color:var(--red);font-size:20px;font-family:var(--display)}
+.log{margin-top:22px;border:1px solid var(--line);border-radius:10px;overflow-x:auto;font-size:14px;background:rgba(0,0,0,.5)}
+.log:empty{display:none}
+.lr{display:grid;grid-template-columns:34px 44px 44px 1fr 56px;min-width:440px;gap:8px;padding:7px 12px;border-bottom:1px solid #2a0509;color:var(--red-s)}
+.lr:last-child{border-bottom:0}.lr.h{color:#a8545b;background:#0d0203}.lr .o{color:var(--red);font-weight:bold}
+.ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.ctl button{padding:9px 14px;background:transparent;color:var(--red-s);border:1px solid var(--red-d);border-radius:8px;font:inherit;cursor:pointer}
+.ctl button:hover{border-color:var(--red)}
+.sp{display:flex;align-items:center;gap:8px;font-size:14px;color:#d97b83;flex:1;min-width:170px}
+.sp input{flex:1;width:100%;padding:0;border:0;box-shadow:none;accent-color:var(--red)}
+.viz{display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:16px}.viz:empty{display:none}
+.fq{width:100%;max-width:640px}
+.fr{margin-bottom:10px}.ft{font-size:12px;color:#a8545b;letter-spacing:.1em;margin-bottom:4px}
+.fb{display:grid;grid-template-columns:repeat(26,1fr);gap:2px;align-items:end}
+.fc{display:flex;flex-direction:column;justify-content:flex-end;height:74px;text-align:center}
+.fc i{display:block;background:var(--red-d);min-height:2px;border-radius:2px 2px 0 0;transition:height .4s}
+.fc span{font-size:clamp(7px,1.9vw,11px);color:#5d2227;padding-top:2px}
+.fc.hl i{background:var(--red);box-shadow:0 0 12px var(--red)}.fc.hl span{color:var(--red-s)}
+.wv{width:100%;max-width:780px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(0,0,0,.55)}
+.wr{display:grid;gap:3px;text-align:center;border-bottom:1px solid #2a0509}.wr:last-of-type{border-bottom:0}
+.wr span{font-family:var(--display);font-size:clamp(9px,2.6vw,17px);line-height:30px;color:#a8545b;border-radius:4px}
+.wr.k span{color:#7a2a30}.wr.o span.done{color:var(--red);text-shadow:0 0 10px var(--red)}
+.wr span.on{background:rgba(255,30,45,.18);color:var(--red-s)}
+.wcap{margin-top:6px;text-align:center;font-size:11px;color:#a8545b}
+footer{margin-top:30px;text-align:center;font-size:13px;color:#7a2a30}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.cell{width:52px}.cell .g{font-size:26px}}
+@media(prefers-reduced-motion:reduce){.bg .row{animation:none}}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true" id="bg"></div>
+<main>
+  <header>
+    <h1>CIPHERLENS</h1>
+    <p class="coded" id="coded" aria-label="CIPHERLENS encoded with Caesar +3"><span id="codedText"></span><small>the name above, encoded with Caesar +3</small></p>
+  </header>
+
+  <section class="card">
+    <label for="word">Your Word</label>
+    <input id="word" maxlength="100" autocomplete="off" spellcheck="false" placeholder="Enter what do you want">
+    <div class="grid">
+      <div>
+        <label for="cipher">Cipher</label>
+        <select id="cipher">
+          <option value="caesar">Caesar cipher</option>
+          <option value="atbash">Atbash cipher</option>
+          <option value="vigenere">Vigenère cipher</option>
+        </select>
+      </div>
+      <div>
+        <label>Operation</label>
+        <div class="seg">
+          <button type="button" id="mDec" aria-pressed="true">Decode</button>
+          <button type="button" id="mEnc" aria-pressed="false">Encode</button>
+        </div>
+      </div>
+      <div class="full" id="keyBox">
+        <label for="key" id="keyLabel">Shift (1–25)</label>
+        <input id="key" value="3" autocomplete="off" spellcheck="false">
+        <p class="hint" id="hint"></p>
+      </div>
+    </div>
+    <button class="go" id="run">EXECUTE</button>
+    <div class="ctl">
+      <div class="sp">Speed <input type="range" id="speed" min="0.25" max="3" step="0.25" value="1" aria-label="Animation speed"></div>
+      <button type="button" id="pause">Pause</button>
+      <button type="button" id="step">Step ▸</button>
+    </div>
+    <p class="err" id="err" role="alert"></p>
+  </section>
+
+  <section class="stage" aria-live="polite">
+    <div class="status" id="status">Enter a word, choose a cipher, then press Execute.</div>
+    <div class="strip" id="strip" aria-hidden="true"></div>
+    <div class="fx" id="fx"></div>
+    <div class="viz" id="viz"></div>
+    <div class="cells" id="cells"></div>
+    <div class="result" id="result">
+      <div class="k" id="rk">Result</div>
+      <div class="v" id="rv"></div>
+      <button class="copy" id="copy" type="button">Copy result</button>
+    </div>
+    <div class="log" id="log"></div>
+  </section>
+  <footer>Letters are processed one at a time. Digits, spaces and symbols pass through unchanged.</footer>
+</main>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const A=65, sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const mod=n=>((n%26)+26)%26, L=i=>String.fromCharCode(A+mod(i));
+  let mode='dec', token=0;
+
+  // Background: repeated outlined phrase
+  const bg=$('bg'), phrase='VISUAL ANALYSIS OF CODES   ';
+  for(let i=0;i<7;i++){const r=document.createElement('div');r.className='row';r.textContent=phrase.repeat(10);r.style.animationDuration=(50+i*7)+'s';bg.appendChild(r);}
+
+  // Encoded site name (Caesar +3), scrambled in on load
+  const enc=s=>[...s].map(c=>L(c.charCodeAt(0)-A+3)).join('');
+  const nameCoded=enc('CIPHERLENS'), ct=$('codedText');
+  (async()=>{for(let n=0;n<=nameCoded.length;n++){for(let k=0;k<3;k++){
+    ct.textContent=nameCoded.slice(0,n)+[...nameCoded.slice(n)].map(()=>L(Math.random()*26|0)).join('');await sleep(35);}}
+    ct.textContent=nameCoded;})();
+
+  // UI wiring
+  const cipher=$('cipher'),key=$('key');
+  function setMode(m){mode=m;$('mDec').setAttribute('aria-pressed',m==='dec');$('mEnc').setAttribute('aria-pressed',m==='enc');
+    $('word').placeholder=m==='dec'?'Type the coded word, e.g. KHOOR':'Type the plain word, e.g. HELLO';}
+  $('mDec').onclick=()=>setMode('dec');$('mEnc').onclick=()=>setMode('enc');
+  function syncCipher(){
+    const c=cipher.value;$('keyBox').style.display=c==='atbash'?'none':'block';
+    if(c==='caesar'){$('keyLabel').textContent='Shift (1–25)';key.value='3';$('hint').textContent='Each letter moves back (decode) or forward (encode) by this many places.';}
+    if(c==='vigenere'){$('keyLabel').textContent='Keyword (letters only)';key.value='KEY';$('hint').textContent='Each letter uses the next letter of the keyword as its shift (A=0 … Z=25).';}
+  }
+  cipher.onchange=syncCipher;syncCipher();
+  ['word','key'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')run();}));
+  $('run').onclick=run;
+
+  // Playback controls: speed, pause, single step
+  let paused=false,stepRes=null,speed=1;
+  const release=()=>{if(stepRes){const r=stepRes;stepRes=null;r();}};
+  async function tick(ms){if(paused){await new Promise(r=>stepRes=r);}else await sleep(ms/speed);}
+  function resetCtl(){paused=false;release();$('pause').textContent='Pause';}
+  $('speed').oninput=e=>{speed=parseFloat(e.target.value);};
+  $('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'Resume':'Pause';if(!paused)release();};
+  $('step').onclick=()=>{if(!paused){paused=true;$('pause').textContent='Resume';}else release();};
+
+  // Visual analysis: frequency chart + encoder/decoder mirror
+  let wo=[],wi=[],vk=[],vc='',fo=[],fmax=1;
+  function buildViz(c,k,items){
+    const v=$('viz');v.innerHTML='';wo=[];wi=[];vk=[];vc=c;
+    if(c==='caesar'||c==='atbash'){
+      const cnt=Array(26).fill(0);
+      [...$('word').value.toUpperCase()].forEach(ch=>{if(ch.length===1&&ch>='A'&&ch<='Z')cnt[ch.charCodeAt(0)-A]++;});
+      fmax=Math.max(1,...cnt);fo=Array(26).fill(0);
+      const wrap=document.createElement('div');wrap.className='fq';
+      const mkRow=(title,vals,list)=>{
+        const r=document.createElement('div');r.className='fr';
+        const h=document.createElement('div');h.className='ft';h.textContent=title;r.appendChild(h);
+        const bars=document.createElement('div');bars.className='fb';
+        for(let i=0;i<26;i++){
+          const col=document.createElement('div');col.className='fc';
+          const bar=document.createElement('i');bar.style.height=(vals[i]/fmax*100)+'%';
+          const sp=document.createElement('span');sp.textContent=L(i);
+          col.appendChild(bar);col.appendChild(sp);bars.appendChild(col);list.push({col,b:bar});
+        }
+        r.appendChild(bars);wrap.appendChild(r);
+      };
+      mkRow('INPUT LETTER FREQUENCY',cnt,wi);mkRow('OUTPUT LETTER FREQUENCY (builds as letters resolve)',fo,wo);
+      v.appendChild(wrap);
+    }else if(c==='vigenere'){
+      const n=items.length,w=document.createElement('div');w.className='wv';
+      const row=cls=>{const r=document.createElement('div');r.className='wr '+cls;r.style.gridTemplateColumns='repeat('+n+',1fr)';w.appendChild(r);return r;};
+      const ri=row('i'),rk=row('k'),ro=row('o');
+      vk={c:[]};
+      items.forEach((it,i)=>{it.mi=i;
+        const mk=(r,t)=>{const e=document.createElement('span');e.textContent=t;r.appendChild(e);return e;};
+        vk.c.push([mk(ri,it.ch),mk(rk,it.raw?'':L(it.ki)),mk(ro,it.raw?it.ch:'·')]);});
+      const cap=document.createElement('div');cap.className='wcap';cap.textContent='input · keyword (repeats) · output';
+      w.appendChild(cap);v.appendChild(w);
+    }
+  }
+  function vizMark(it){
+    if((vc==='caesar'||vc==='atbash')&&wo.length){
+      wo.concat(wi).forEach(e=>e.col.classList.remove('hl'));wi[it.idx].col.classList.add('hl');wo[it.target].col.classList.add('hl');}
+    if(vc==='vigenere'&&vk.c){
+      vk.c.forEach(c=>c.forEach(e=>e.classList.remove('on')));vk.c[it.mi].forEach(e=>e.classList.add('on'));}
+  }
+  function vizDone(it){
+    if((vc==='caesar'||vc==='atbash')&&wo.length){fo[it.target]++;wo[it.target].b.style.height=(fo[it.target]/fmax*100)+'%';}
+    if(vc==='vigenere'&&vk.c){const o=vk.c[it.mi][2];o.textContent=L(it.target);o.classList.add('done');}
+  }
+  $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('rv').textContent);$('copy').textContent='Copied';setTimeout(()=>$('copy').textContent='Copy result',1500);}catch(e){$('copy').textContent='Copy failed';}};
+
+  // Alphabet strip: every letter with its index 0–25
+  const strip=$('strip');
+  for(let i=0;i<26;i++){const d=document.createElement('div');d.className='sc';d.innerHTML='<b>'+L(i)+'</b><i>'+i+'</i>';strip.appendChild(d);}
+  const sc=[...strip.children], bin=n=>n.toString(2).padStart(5,'0');
+  function clearStrip(){sc.forEach(e=>e.className='sc');}
+  function paint(it,s){
+    clearStrip();
+    for(let q=0;q<=s;q++)sc[mod(it.idx+it.dir*q)].classList.add('tr');
+    sc[it.target].classList.add('tg');sc[it.idx].classList.add('st');sc[mod(it.idx+it.dir*s)].classList.add('cur');
+  }
+  function fxText(it,fin){
+    let h='<em>'+it.ch+'</em> → index <em>'+it.idx+'</em> <small>('+bin(it.idx)+')</small><br>'+it.math;
+    if(fin)h+=' → <strong>'+L(it.target)+'</strong> <small>('+bin(it.target)+')</small>';
+    $('fx').innerHTML=h;
+  }
+  const hdr='<div class="lr h"><span>#</span><span>In</span><span>Idx</span><span>Operation</span><span>Out</span></div>';
+
+  // Build a plan per character: how many steps, in which direction, and a tag
+  function plan(text,c,k){
+    const out=[];let j=0;
+    for(const ch of text){
+      const u=ch.toUpperCase();
+      if(u<'A'||u>'Z'||u.length!==1){out.push({ch,raw:true});continue;}
+      const idx=u.charCodeAt(0)-A;let shift,target,tag;
+      if(c==='atbash'){target=25-idx;tag=u+'↔'+L(25-idx);}
+      else{
+        const s=c==='caesar'?k:k.charCodeAt(j%k.length)-A;if(c==='vigenere')j++;
+        shift=mode==='dec'?-s:s;target=mod(idx+shift);
+        tag=c==='caesar'?(shift<0?'−':'+')+s:k[(j-1)%k.length]+' '+(shift<0?'−':'+')+s;
+      }
+      let dir,steps;
+      if(c==='atbash'){dir=target>=idx?1:-1;steps=Math.abs(target-idx);}
+      else{dir=shift<0?-1:1;steps=Math.abs(shift);}
+      const wrap=c!=='atbash'&&(idx+dir*steps<0||idx+dir*steps>25)?' ↻ wraps around':'';
+      out.push({ch:u,idx,dir,steps,target,tag,ki:c==='vigenere'?k.charCodeAt((j-1)%k.length)-A:-1,math:(c==='atbash'?'mirror: 25 − '+idx+' = '+target:(c==='vigenere'?'key '+k[(j-1)%k.length]+' = '+steps+' | ':'')+'('+idx+(dir<0?' − ':' + ')+steps+') mod 26 = '+target+wrap)});
+    }
+    return out;
+  }
+
+  async function run(){
+    const text=$('word').value.trim(),c=cipher.value;$('err').textContent='';
+    let k=null;
+    if(!text){$('err').textContent='Enter a word first.';return;}
+    if(c==='caesar'){k=parseInt(key.value,10);if(!(k>=1&&k<=25)){$('err').textContent='Shift must be a number from 1 to 25.';return;}}
+    if(c==='vigenere'){k=key.value.toUpperCase();if(!/^[A-Z]+$/.test(k)){$('err').textContent='The keyword must contain letters A–Z only.';return;}}
+    if(!/[a-z]/i.test(text)){$('err').textContent='The text needs at least one letter (A–Z).';return;}
+
+    const my=++token,btn=$('run');btn.disabled=true;
+    $('result').classList.remove('show');
+    const items=plan(text,c,k),box=$('cells');box.innerHTML='';
+    const els=items.map(it=>{
+      const d=document.createElement('div');d.className='cell'+(it.raw?' raw done':'');
+      d.innerHTML='<span class="g"></span><span class="t"></span><span class="b"><i></i></span>';
+      d.querySelector('.g').textContent=it.ch;if(!it.raw)d.querySelector('.t').textContent='';box.appendChild(d);return d;});
+    const n=items.filter(i=>!i.raw).length,delay=n>14?30:n>8?42:60;
+    let out='',done=0,row=0;$('log').innerHTML=hdr;clearStrip();$('fx').innerHTML='';resetCtl();buildViz(c,k,items);
+    $('status').textContent=(mode==='dec'?'Decoding':'Encoding')+' with '+cipher.options[cipher.selectedIndex].text+'…';
+
+    for(let i=0;i<items.length;i++){
+      if(my!==token)return;
+      const it=items[i],el=els[i];
+      if(it.raw){out+=it.ch;continue;}
+      const g=el.querySelector('.g'),bar=el.querySelector('.b i');
+      el.classList.add('on');el.querySelector('.t').textContent=it.tag;
+      paint(it,0);fxText(it,false);vizMark(it);
+      await tick(450);
+      for(let s=1;s<=it.steps;s++){
+        if(my!==token)return;
+        g.textContent=L(it.idx+it.dir*s);bar.style.width=(s/it.steps*100)+'%';paint(it,s);await tick(delay);
+      }
+      if(my!==token)return;g.textContent=L(it.target);out+=L(it.target);
+      fxText(it,true);vizDone(it);row++;
+      const lr=document.createElement('div');lr.className='lr';
+      lr.innerHTML='<span>'+row+'</span><span>'+it.ch+'</span><span>'+it.idx+'</span><span>'+it.math+'</span><span class="o">'+L(it.target)+'</span>';
+      $('log').appendChild(lr);await tick(350);
+      el.classList.remove('on');el.classList.add('done');done++;
+      $('status').textContent='Letter '+done+' of '+n+' resolved';
+      await sleep(60);
+    }
+    if(my!==token)return;
+    $('status').textContent='Done.';
+    $('rk').textContent=mode==='dec'?'Decoded result':'Encoded result';
+    $('rv').textContent=out;$('result').classList.add('show');btn.disabled=false;
+  }
+})();
+</script>
+</body>
+</html>
